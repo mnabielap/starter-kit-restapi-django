@@ -1,0 +1,62 @@
+# Python compilation archives
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django specific
+*.log
+*.pot
+*.pyc
+*.pyo
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Static and Media files
+# (We usually commit the folders but not the content generated at runtime)
+media/
+staticfiles/
+static_root/
+
+# Unit test / coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+
+# Environments (Virtual Envs)
+.env
+.env.local
+.env.production
+.env.docker
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker (Optional, depending on workflow)
+# We usually commit docker-compose, but ignore overrides if any
+docker-compose.override.yml
+
+# Exceptions (Files we WANT to keep despite rules above)
+!__init__.py
+!.env.example
+
+**/__pycache__
+
+**api_tests/*.json
