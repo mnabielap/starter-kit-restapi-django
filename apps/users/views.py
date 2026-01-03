@@ -128,6 +128,22 @@ class UserListCreateView(generics.ListCreateAPIView):
         # GET /users -> Admin only (getUsers)
         return [IsAuthenticated(), IsAdmin()]
 
+    def create(self, request, *args, **kwargs):
+        """
+        Overridden to use CreateUserSerializer for input validation
+        but UserSerializer for the output response.
+        This ensures fields like 'id' and 'role' are present in the response.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        # Switch to the read-serializer for the response
+        user_data = serializers.UserSerializer(user).data
+        
+        headers = self.get_success_headers(user_data)
+        return Response(user_data, status=status.HTTP_201_CREATED, headers=headers)
+
     def filter_queryset(self, queryset):
         # Implement filtering: name, role
         name = self.request.query_params.get('name')
@@ -180,3 +196,25 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [IsAuthenticated(), IsAdmin()]
         
         return [IsAuthenticated(), IsUserOrAdmin()]
+
+    def update(self, request, *args, **kwargs):
+        """
+        Overridden to use UpdateUserSerializer for input validation
+        but UserSerializer for the output response.
+        This ensures consistent response structure (id, role, etc.) even after partial updates.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Validate Input
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        
+        # Return standard User representation
+        user_data = serializers.UserSerializer(instance).data
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(user_data)
