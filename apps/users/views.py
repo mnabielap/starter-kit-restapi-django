@@ -1,3 +1,5 @@
+import uuid
+from django.db.models import Q
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -145,32 +147,62 @@ class UserListCreateView(generics.ListCreateAPIView):
         return Response(user_data, status=status.HTTP_201_CREATED, headers=headers)
 
     def filter_queryset(self, queryset):
-        # Implement filtering: name, role
-        name = self.request.query_params.get('name')
+        # Extract query parameters
+        search = self.request.query_params.get('search')
+        scope = self.request.query_params.get('scope', 'all')
         role = self.request.query_params.get('role')
-        sort_by = self.request.query_params.get('sortBy') # field:desc
-        
-        if name:
-            queryset = queryset.filter(name__icontains=name)
+        sort_by = self.request.query_params.get('sortBy', 'created_at:desc') # Default sort
+
+        # 1. Filter by Role
         if role:
             queryset = queryset.filter(role=role)
+
+        # 2. Search Logic
+        if search:
+            # Helper: Check if search term is a valid UUID
+            is_uuid = False
+            try:
+                uuid.UUID(search)
+                is_uuid = True
+            except ValueError:
+                pass
+
+            if scope == 'all':
+                # Search name, email, and ID if valid
+                q_obj = Q(name__icontains=search) | Q(email__icontains=search)
+                if is_uuid:
+                    q_obj |= Q(id=search)
+                queryset = queryset.filter(q_obj)
             
+            elif scope == 'name':
+                queryset = queryset.filter(name__icontains=search)
+            
+            elif scope == 'email':
+                queryset = queryset.filter(email__icontains=search)
+            
+            elif scope == 'id':
+                if is_uuid:
+                    queryset = queryset.filter(id=search)
+                else:
+                    # Searching by ID with invalid UUID string -> No results
+                    queryset = queryset.none()
+
+        # 3. Sorting Logic
         if sort_by:
-            # Convert 'name:desc' to '-name'
             parts = sort_by.split(':')
             field = parts[0]
-            order = parts[1] if len(parts) > 1 else 'asc'
+            direction = parts[1] if len(parts) > 1 else 'asc'
 
-            field_mapping = {
+            # Mapping for camelCase -> snake_case
+            mapping = {
                 'createdAt': 'created_at',
                 'updatedAt': 'updated_at',
                 'isEmailVerified': 'is_email_verified'
             }
-            field = field_mapping.get(field, field)
+            db_field = mapping.get(field, field)
 
-            if order == 'desc':
-                field = '-' + field
-            queryset = queryset.order_by(field)
+            prefix = '-' if direction == 'desc' else ''
+            queryset = queryset.order_by(f"{prefix}{db_field}")
             
         return queryset
 

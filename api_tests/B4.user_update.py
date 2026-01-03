@@ -1,27 +1,32 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-import utils
-from utils import BASE_URL
+from utils import send_and_print, BASE_URL, load_config
 
-access_token = utils.load_config("access_token")
-user_id = utils.load_config("user_id")
+print("--- UPDATE USER ---")
 
-if not user_id:
-    print("[ERROR] No user_id found.")
+token = load_config("accessToken")
+target_id = load_config("target_user_id")
+
+if not token:
+    print("Error: No access token. Run A2.auth_login.py first.")
+    sys.exit(1)
+if not target_id:
+    print("Error: No target User ID. Run B1.user_create.py first.")
     sys.exit(1)
 
-headers = {"Authorization": f"Bearer {access_token}"} if access_token else {}
-
+url = f"{BASE_URL}/users/{target_id}"
+headers = {
+    "Authorization": f"Bearer {token}"
+}
 payload = {
-    "name": "Updated Name",
-    # "email": "newemail@example.com" # Optional
+    "name": "Updated Name via Python"
 }
 
-utils.send_and_print(
-    url=f"{BASE_URL}/users/{user_id}",
-    method="PATCH",
+response = send_and_print(
+    url=url,
     headers=headers,
+    method="PATCH",
     body=payload,
     output_file=f"{os.path.splitext(os.path.basename(__file__))[0]}.json"
 )
